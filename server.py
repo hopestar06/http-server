@@ -2,8 +2,6 @@ from __future__ import unicode_literals
 import socket
 
 
-
-
 def response_ok():
     header = 'HTTP/1.1 200 OK\nContent-Type: text/html'
     body = '<html><body>200 OK</body></html>'
@@ -16,7 +14,7 @@ def response_error():
 
 
 def start_server():
-    ADDR = ('127.0.0.1', 8018)
+    ADDR = ('127.0.0.1', 8000)
 
     s = socket.socket(
         socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
@@ -31,7 +29,7 @@ def start_server():
                 msg = conn.recv(1024)
                 result += msg
                 if len(msg) < 1024:
-                    conn.sendall(result)
+                    print result
                     conn.sendall(response_ok())
                     conn.close()
                     break
