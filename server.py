@@ -45,7 +45,7 @@ def parse_request(request):
     if lines[2] != b'':
         raise SyntaxError(b'Bad Request')
 
-    return header[1]
+    return header_pieces[1]
 
 
 def start_server():
