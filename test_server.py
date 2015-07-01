@@ -3,7 +3,7 @@ import socket
 import pytest
 from multiprocessing import Process
 
-ADDR = ('127.0.0.1', 8020)
+ADDR = ('127.0.0.1', 8000)
 _CRLF = b'\r\n'
 
 @pytest.yield_fixture()
@@ -80,3 +80,4 @@ def test_parse_request_no_Host():
     request.append(b'GET /path/to/URI HTTP/1.0')
     with pytest.raises(Exception):
         server.parse_request(request)
+
