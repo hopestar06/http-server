@@ -51,6 +51,7 @@ def test_parse_request_valid_request():
     request = []
     request.append(b'GET /path/to/URI HTTP/1.1')
     request.append(b'Host: www.google.com')
+    request.append(b'')
     request = (b'\r\n').join(request)
     response = server.parse_request(request)
     assert response == b'/path/to/URI'
