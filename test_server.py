@@ -55,3 +55,27 @@ def test_parse_request_valid_request():
     response = server.parse_request(request)
     assert response == b'/path/to/URI'
 
+
+def test_parse_request_not_GET():
+    request = []
+    request.append(b'POST /path/to/URI HTTP/1.1')
+    request.append(b'Host: www.google.com')
+    request = (b'\r\n').join(request)
+    with pytest.raises(TypeError):
+        server.parse_request(request)
+
+
+def test_parse_request_not_HTTP_1_1():
+    request = []
+    request.append(b'GET /path/to/URI HTTP/1.0')
+    request.append(b'Host: www.google.com')
+    request = (b'\r\n').join(request)
+    with pytest.raises(ValueError):
+        server.parse_request(request)
+
+
+def test_parse_request_no_Host():
+    request = []
+    request.append(b'GET /path/to/URI HTTP/1.0')
+    with pytest.raises(Exception):
+        server.parse_request(request)
