@@ -32,15 +32,19 @@ def parse_request(request):
     header = lines[0]
     header_pieces = header.split(_WS)
     if header_pieces[0] != _GET:
-        raise ValueError(b'Method Not ALlowed')
+        raise TypeError(b'Method Not Allowed')
     elif header_pieces[2] != _PROTOCOL:
         raise ValueError(b'HTTP Version Not Supported')
-
     # Validate the host line
     host_line = lines[1]
     host_line_pieces = host_line.split(_WS)
     if host_line_pieces[0] != _HOST_PREFIX:
-        raise ValueError(b'Bad Request')
+        raise Exception(b'Bad Request')
+
+    # Check for a blank line at the end
+    if lines[2] != b'':
+        raise SyntaxError(b'Bad Request')
+
     return header[1]
 
 
@@ -53,7 +57,7 @@ def start_server():
     s.bind(ADDR)
     s.listen(1)
     while True:
-        result = ''
+        result = b''
         try:
             conn, addr = s.accept()
             while True:
@@ -61,9 +65,19 @@ def start_server():
                 result += msg
                 if len(msg) < 1024:
                     print result
-                    conn.sendall(response_ok())
-                    conn.close()
-                    break
+            try:
+                parse_request(result)
+            except TypeError:
+                response_error(405, 'Method Not allowed')
+            except ValueError:
+                response_error(505, 'HTTP version not supported')
+            except Exception:
+                response_error(400, 'Bad Request')
+            except SyntaxError:
+                response_error(400, 'Bad Request')
+            conn.sendall(response_ok())
+            conn.close()
+            break
         except KeyboardInterrupt:
             break
 
