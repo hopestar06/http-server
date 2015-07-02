@@ -1,5 +1,9 @@
 from __future__ import unicode_literals
 import socket
+import os
+
+current_file_path = os.path.abspath(__file__)
+root_dir = os.path.dirname(current_file_path)
 
 
 _CRLF = b'\r\n'
@@ -13,6 +17,10 @@ _RESPONSE_TEMPLATE = _CRLF.join([
     b'Content-Type: text/html; charset=UTF-8',
     b''])
 
+_HTML_START_TEMPLATE = b'<head>\n<body>\n<li>'
+
+_HTML_END_TEMPLATE = b'</li>\n</body>\n</head>'''
+
 
 def response_ok():
     return _RESPONSE_TEMPLATE.format(response_code=b'200',
@@ -24,6 +32,34 @@ def response_error(response_code, response_reason):
     return _RESPONSE_TEMPLATE.format(response_code=response_code,
                                      response_reason=response_reason)
 
+
+def create_contents_list(alist):
+    result = b''
+    for item in alist:
+        result = result + '\n' + '<ul>' + item + '</ul>'
+    return result
+
+
+def get_file_content(filename):
+    with open(filename) as f:
+        return f.read()
+
+
+def request_uri(uri):
+    body = b''
+    try:
+        if os.path.isdir(uri):
+            cont_type = b'dir'
+            dir_contents = os.listdir(uri)
+            body = (_HTML_START_TEMPLATE +
+                    create_contents_list(dir_contents) +
+                    _HTML_END_TEMPLATE)
+        else:
+            cont_type = uri.split('.')[-1]
+            body = body + get_file_content(uri)
+        return body, cont_type
+    except:
+        raise IOError
 
 def parse_request(request):
     lines = request.split(_CRLF)
@@ -48,11 +84,15 @@ def parse_request(request):
     return header_pieces[1]
 
 
+def resolve_uri(uri):
+
+
 def start_server():
     ADDR = ('127.0.0.1', 8000)
 
     s = socket.socket(
         socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     s.bind(ADDR)
     s.listen(1)
@@ -65,6 +105,7 @@ def start_server():
                 result += msg
                 if len(msg) < 1024:
                     print result
+                    break
             try:
                 parse_request(result)
             except TypeError:
