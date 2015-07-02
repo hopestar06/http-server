@@ -45,7 +45,7 @@ def get_file_content(filename):
         return f.read()
 
 
-def request_uri(uri):
+def resolve_uri(uri):
     body = b''
     try:
         if os.path.isdir(uri):
@@ -60,6 +60,7 @@ def request_uri(uri):
         return body, cont_type
     except:
         raise IOError
+
 
 def parse_request(request):
     lines = request.split(_CRLF)
@@ -82,9 +83,6 @@ def parse_request(request):
         raise SyntaxError(b'Bad Request')
 
     return header_pieces[1]
-
-
-def resolve_uri(uri):
 
 
 def start_server():
