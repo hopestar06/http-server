@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 import socket
 import os
+import sys
+import mimetypes
 
 current_file_path = os.path.abspath(__file__)
 root_dir = os.path.dirname(current_file_path)
@@ -23,14 +25,10 @@ _RESPONSE_ERROR_TEMPLATE = _CRLF.join([
     b''])
 
 
-_HTML_START_TEMPLATE = b'<head>\n<body>\n<li>'
-
-_HTML_END_TEMPLATE = b'</li>\n</body>\n</head>'''
-
-
-def response_ok(body, cont_type, c_length):
+def response_ok(body, cont_type):
+        c_length = sys.getsizeof(body)
         response = create_header(200, b'OK', cont_type, c_length)
-        response += body
+        response += '\n' + body
         return response
 
 
@@ -45,13 +43,14 @@ def resolve_uri(uri):
     path = root_dir + uri
     try:
         if os.path.isdir(path):
-            cont_type = b'dir'
+            cont_type = b'text/html'
             dir_contents = os.listdir(path)
-            body = (_HTML_START_TEMPLATE +
+            body = ('<head><body><p>' + path +'</p>'+
                     create_contents_list(dir_contents) +
-                    _HTML_END_TEMPLATE)
-        else:
-            cont_type = path.split('.')[-1]
+                    '</ul></body></head>')
+        elif os.path.isfile(path):
+            cont_type, encoding = mimetypes.guess_type(uri)
+            #cont_type = path.split('.')[-1]
             body = body + get_file_content(path)
         return body, cont_type
     except:
@@ -65,7 +64,8 @@ def parse_request(request):
     header = lines[0]
     header_pieces = header.split(_WS)
     if header_pieces[0] != _GET:
-        raise TypeError(b'Method Not Allowed')
+        raise TypeError 
+        #(b'Method Not Allowed')
     elif header_pieces[2] != _PROTOCOL:
         raise ValueError(b'HTTP Version Not Supported')
     # Validate the host line
@@ -87,20 +87,11 @@ def parse_request(request):
 def create_contents_list(alist):
     result = b''
     for item in alist:
-        result = result + '\n' + '<ul>' + item + '</ul>'
+        result = result + '<li>' + item + '</li>'
     return result
 
 
 def get_file_content(filename):
-        return get_file_handler(filename)
-
-
-def get_file_size(filename):
-    path = root_dir + filename
-    return len(get_file_handler(path))
-
-
-def get_file_handler(filename):
     with open(filename) as f:
         return f.read()
 
@@ -127,7 +118,6 @@ def get_content_type(c_type):
         c_type = 'image/jpeg'
     return c_type
 
-
 def start_server():
     ADDR = ('127.0.0.1', 8000)
 
@@ -139,6 +129,8 @@ def start_server():
     s.listen(1)
     while True:
         result = b''
+        body = ''
+        c_type = ''
         try:
             conn, addr = s.accept()
             while True:
@@ -150,22 +142,28 @@ def start_server():
             try:
                 uri = parse_request(result)
                 body, c_type = resolve_uri(uri)
-                c_length = get_file_size(uri)
             except TypeError:
-                response_error(405, 'Method Not allowed')
+                conn.sendall(response_error(405, 'Method Not allowed'))
             except ValueError:
-                response_error(505, 'HTTP version not supported')
-            except Exception:
-                response_error(400, 'Bad Request')
+                conn.sendall(response_error(505, 'HTTP version not supported'))
             except SyntaxError:
-                response_error(400, 'Bad Request')
+                conn.sendall(response_error(400, 'Bad Request2'))
             except IOError:
-                response_error(404, 'Not Found')
-            conn.sendall(response_ok(body, c_type, c_length))
+                conn.sendall(response_error(404, 'Not Found'))
+            except Exception:
+                conn.sendall(response_error(400, 'Bad Request1'))
+            conn.sendall(response_ok(body, c_type))
             conn.close()
             break
         except KeyboardInterrupt:
             break
 
+
 if __name__ == '__main__':
     start_server()
+'''
+try:
+    uri = parse_request('GETy /webroot/a_web_page.htm HTTP/1.1\r\nHost: www.google.com')
+except TypeError:
+    print response_error(400, 'Bad Request')
+'''
