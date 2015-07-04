@@ -25,19 +25,29 @@ _RESPONSE_ERROR_TEMPLATE = _CRLF.join([
     b''])
 
 
+# Given an http body and content type
+# Creates and returns a correctly formatted http header with body
 def response_ok(body, cont_type):
         c_length = sys.getsizeof(body)
         response = create_header(200, b'OK', cont_type, c_length)
-        response += '\n' + body
+        response += '\r\n' + body
         return response
 
 
+# Given an http response code and reaponse reason
+# Return an http formatted response
 def response_error(response_code, response_reason):
     """ Return 500 Internal Server Error"""
     return _RESPONSE_ERROR_TEMPLATE.format(response_code=response_code,
                                      response_reason=response_reason)
 
 
+# Takes as a argument, a uri.
+# If the uri is a directory, return the list of the directory contents
+# and the content type.
+# If the uri is a file, return the contents of the file
+# and the content type
+# If uri is invalid or file cannot be opened raises and IOError
 def resolve_uri(uri):
     body = b''
     path = root_dir + uri
@@ -57,6 +67,10 @@ def resolve_uri(uri):
         raise IOError
 
 
+# Takes in an http request, parses the request
+# Returns the uri contained in the request
+# If request is not a 'GET'request or is not
+# http-formatted, an error will be raised 
 def parse_request(request):
     lines = request.split(_CRLF)
 
@@ -83,14 +97,15 @@ def parse_request(request):
 
     return header_pieces[1]
 
-
+# Takes as a parameter a list of the contents of a directory
+# and returns an html formatted listing of the directory contents
 def create_contents_list(alist):
     result = b''
     for item in alist:
         result = result + '<li>' + item + '</li>'
     return result
 
-
+# Given path of a file, returns the contents of a file
 def get_file_content(filename):
     with open(filename) as f:
         return f.read()
@@ -161,9 +176,3 @@ def start_server():
 
 if __name__ == '__main__':
     start_server()
-'''
-try:
-    uri = parse_request('GETy /webroot/a_web_page.htm HTTP/1.1\r\nHost: www.google.com')
-except TypeError:
-    print response_error(400, 'Bad Request')
-'''
