@@ -1,11 +1,7 @@
 from __future__ import unicode_literals
 import socket
 import os
-import sys
-import mimetypes
 
-current_file_path = os.path.abspath(__file__)
-root_dir = os.path.dirname(current_file_path)
 
 _CRLF = b'\r\n'
 _GET = b'GET'
@@ -25,32 +21,43 @@ _RESPONSE_ERROR_TEMPLATE = _CRLF.join([
     b''])
 
 
-def response_ok(body, cont_type):
-        c_length = sys.getsizeof(body)
+_HTML_START_TEMPLATE = b'<head>\n<body>\n<ul>'
+
+_HTML_END_TEMPLATE = b'\n</ul>\n</body>\n</head>'
+
+
+def root_dir():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def response_ok(body, cont_type, c_length):
         response = create_header(200, b'OK', cont_type, c_length)
-        response += '\n' + body
+        response += body
+        response += _CRLF
         return response
 
 
 def response_error(response_code, response_reason):
     """ Return 500 Internal Server Error"""
     return _RESPONSE_ERROR_TEMPLATE.format(response_code=response_code,
-                                     response_reason=response_reason)
+                                           response_reason=response_reason)
 
 
 def resolve_uri(uri):
+    if '..' in uri:
+        raise ValueError(b'Bad Request')
     body = b''
-    path = root_dir + uri
+    path = root_dir() + uri
     try:
         if os.path.isdir(path):
-            cont_type = b'text/html'
+            cont_type = b'dir'
             dir_contents = os.listdir(path)
-            body = ('<head><body><p>' + path +'</p>'+
+            body = (_HTML_START_TEMPLATE +
                     create_contents_list(dir_contents) +
-                    '</ul></body></head>')
-        elif os.path.isfile(path):
-            cont_type, encoding = mimetypes.guess_type(uri)
-            #cont_type = path.split('.')[-1]
+                    _HTML_END_TEMPLATE)
+        else:
+            cont_type = path.split('.')[-1]
+            print 'starting get_file_content'
             body = body + get_file_content(path)
         return body, cont_type
     except:
@@ -64,10 +71,9 @@ def parse_request(request):
     header = lines[0]
     header_pieces = header.split(_WS)
     if header_pieces[0] != _GET:
-        raise TypeError 
-        #(b'Method Not Allowed')
+        raise TypeError(b'Method Not Allowed')
     elif header_pieces[2] != _PROTOCOL:
-        raise ValueError(b'HTTP Version Not Supported')
+        raise NotImplementedError(b'HTTP Version Not Supported')
     # Validate the host line
     if len(lines) < 2:
         raise Exception(b'Bad Request')
@@ -87,12 +93,22 @@ def parse_request(request):
 def create_contents_list(alist):
     result = b''
     for item in alist:
-        result = result + '<li>' + item + '</li>'
+        result = result + '\n' + '<li>' + item + '</li>'
     return result
 
 
 def get_file_content(filename):
+    return get_file_handler(filename)
+
+
+def get_file_size(filename):
+    path = root_dir() + filename
+    return len(get_file_handler(path))
+
+
+def get_file_handler(filename):
     with open(filename) as f:
+        print f
         return f.read()
 
 
@@ -118,6 +134,7 @@ def get_content_type(c_type):
         c_type = 'image/jpeg'
     return c_type
 
+
 def start_server():
     ADDR = ('127.0.0.1', 8000)
 
@@ -129,8 +146,6 @@ def start_server():
     s.listen(1)
     while True:
         result = b''
-        body = ''
-        c_type = ''
         try:
             conn, addr = s.accept()
             while True:
@@ -142,28 +157,22 @@ def start_server():
             try:
                 uri = parse_request(result)
                 body, c_type = resolve_uri(uri)
+                c_length = get_file_size(uri)
             except TypeError:
-                conn.sendall(response_error(405, 'Method Not allowed'))
-            except ValueError:
-                conn.sendall(response_error(505, 'HTTP version not supported'))
+                response_error(405, 'Method Not allowed')
+            except NotImplementedError:
+                response_error(505, 'HTTP version not supported')
             except SyntaxError:
-                conn.sendall(response_error(400, 'Bad Request2'))
+                response_error(400, 'Bad Request')
             except IOError:
-                conn.sendall(response_error(404, 'Not Found'))
+                response_error(404, 'Not Found')
             except Exception:
-                conn.sendall(response_error(400, 'Bad Request1'))
-            conn.sendall(response_ok(body, c_type))
+                response_error(400, 'Bad Request')
+            conn.sendall(response_ok(body, c_type, c_length))
             conn.close()
             break
         except KeyboardInterrupt:
             break
 
-
 if __name__ == '__main__':
     start_server()
-'''
-try:
-    uri = parse_request('GETy /webroot/a_web_page.htm HTTP/1.1\r\nHost: www.google.com')
-except TypeError:
-    print response_error(400, 'Bad Request')
-'''
