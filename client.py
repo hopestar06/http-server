@@ -8,10 +8,14 @@ client = socket.socket(
 )
 
 client.connect(ADDR)
-msg = "do you hear me?"
+request = []
+request.append(b'GET /webroot/a_web_page.html HTTP/1.1')
+request.append(b'Host: www.google.com')
+request.append(b'')
+request = (b'\r\n').join(request)
 
 try:
-    client.sendall(msg)
+    client.sendall(request)
     while True:
         part = client.recv(1024)
         client.shutdown(socket.SHUT_WR)
