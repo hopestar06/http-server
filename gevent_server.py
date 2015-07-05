@@ -12,6 +12,7 @@ def echo(socket, address):
     result = b''
     body = ''
     c_type = ''
+    c_length = ''
     while True:
         while True:
             data = socket.recv(1024)
@@ -22,6 +23,7 @@ def echo(socket, address):
             try:
                 uri = server.parse_request(result)
                 body, c_type = server.resolve_uri(uri)
+                c_length = server.get_file_size(uri)
             except TypeError:
                 socket.sendall(server.response_error(405, 'Method Not allowed'))
             except ValueError:
@@ -32,7 +34,7 @@ def echo(socket, address):
                 socket.sendall(server.response_error(404, 'Not Found'))
             except Exception:
                 socket.sendall(server.response_error(400, 'Bad Request1'))  
-            socket.sendall(server.response_ok(body, c_type))
+            socket.sendall(server.response_ok(body, c_type, c_length))
         else:
             socket.close()
             break
@@ -44,23 +46,3 @@ if __name__ == '__main__':
     serv = StreamServer(('127.0.0.1', 10000), echo)
     print ('Starting server on port 10000')
     serv.serve_forever()
-
-'''
-    
-      try:
-                uri = server.parse_request(result)
-                body, c_type = server.resolve_uri(uri)
-            except TypeError:
-                socket.sendall(server.response_error(405, 'Method Not allowed'))
-            except ValueError:
-                socket.sendall(server.response_error(505, 'HTTP version not supported'))
-            except SyntaxError:
-                socket.sendall(server.response_error(400, 'Bad Request2'))
-            except IOError:
-                socket.sendall(server.response_error(404, 'Not Found'))
-            except Exception:
-                socket.sendall(server.response_error(400, 'Bad Request1'))
-            socket.sendall(server.response_ok(body, c_type))
-            socket.close()
-            break
-'''

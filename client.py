@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import socket
 
-ADDR = ('127.0.0.1', 8000)
+ADDR = ('127.0.0.1', 10000)
 
 client = socket.socket(
     socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP
