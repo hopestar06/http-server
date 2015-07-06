@@ -1,11 +1,9 @@
 from __future__ import unicode_literals
+import server
 import socket
 import os
 import sys
 import mimetypes
-import server
-from gevent.server import StreamServer
-from gevent.monkey import patch_all
 
 
 def echo(socket, address):
@@ -33,16 +31,21 @@ def echo(socket, address):
             except IOError:
                 socket.sendall(server.response_error(404, 'Not Found'))
             except Exception:
-                socket.sendall(server.response_error(400, 'Bad Request1'))  
+                socket.sendall(server.response_error(400, 'Bad Request1'))
             socket.sendall(server.response_ok(body, c_type, c_length))
         else:
             socket.close()
             break
 
 
-
-if __name__ == '__main__':
+def start_gserver():
+    from gevent.server import StreamServer
+    from gevent.monkey import patch_all
     patch_all()
     serv = StreamServer(('127.0.0.1', 10000), echo)
-    print ('Starting server on port 10000')
+    print('Starting server on port1000')
     serv.serve_forever()
+
+
+if __name__ == '__main__':
+    start_gserver()

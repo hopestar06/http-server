@@ -1,9 +1,12 @@
+from multiprocessing import Process
+import pytest
 import __builtin__
+import gevent_server
+# import gevent_server
 import server
 import socket
-import pytest
 import os
-from multiprocessing import Process
+
 
 ADDR = ('127.0.0.1', 8000)
 _CRLF = b'\r\n'
@@ -11,7 +14,7 @@ _CRLF = b'\r\n'
 
 @pytest.yield_fixture()
 def server_setup():
-    process = Process(target=server.start_server)
+    process = Process(target=gevent_server.start_gserver)
     process.daemon = True
     process.start()
     yield process
